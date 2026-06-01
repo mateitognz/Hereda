@@ -1,0 +1,1303 @@
+import { useState, useEffect, useRef } from "react";
+
+// ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
+const theme = {
+  colors: {
+    ink: "#0D0D0D",
+    paper: "#F5F0E8",
+    cream: "#EDE8DC",
+    gold: "#B8960C",
+    goldLight: "#D4AF37",
+    goldPale: "#F0E6A0",
+    rust: "#8B3A2A",
+    sage: "#4A6741",
+    slate: "#2C3E50",
+    mist: "#E8EDF2",
+    alert: "#C0392B",
+    success: "#27AE60",
+    info: "#2980B9",
+  },
+};
+
+// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+const mockTramites = [
+  {
+    id: "SUC-2024-001",
+    tipo: "Sucesión intestada",
+    ciudadano: "María Elena Rodríguez",
+    cedula: "52.341.890",
+    estado: "revision_juridica",
+    etapa: 4,
+    responsable: "Dra. Ana Martínez",
+    creado: "2024-01-15",
+    estimado: "2024-02-28",
+    herederos: 3,
+    bienes: ["Inmueble", "Vehículo"],
+    documentos: { total: 8, subidos: 7, aprobados: 5, rechazados: 1 },
+    observaciones: ["Falta acta de defunción apostillada"],
+    historial: [
+      { fecha: "2024-01-15", evento: "Solicitud creada", actor: "María Elena" },
+      { fecha: "2024-01-18", evento: "Documentos cargados", actor: "Sistema" },
+      {
+        fecha: "2024-01-22",
+        evento: "Revisión jurídica iniciada",
+        actor: "Dra. Martínez",
+      },
+    ],
+  },
+  {
+    id: "SUC-2024-002",
+    tipo: "Sucesión testada",
+    ciudadano: "Carlos Alberto Gómez",
+    cedula: "79.234.567",
+    estado: "elaboracion_escritura",
+    etapa: 5,
+    responsable: "Dr. Luis Herrera",
+    creado: "2024-01-10",
+    estimado: "2024-02-15",
+    herederos: 2,
+    bienes: ["Inmueble"],
+    documentos: { total: 10, subidos: 10, aprobados: 10, rechazados: 0 },
+    observaciones: [],
+    historial: [],
+  },
+  {
+    id: "SUC-2024-003",
+    tipo: "Sucesión intestada",
+    ciudadano: "Patricia Suárez Mendez",
+    cedula: "41.789.234",
+    estado: "documentacion_pendiente",
+    etapa: 2,
+    responsable: "Aux. Rosa Cárdenas",
+    creado: "2024-01-20",
+    estimado: "2024-03-10",
+    herederos: 5,
+    bienes: ["Inmueble", "Cuentas bancarias", "Vehículo"],
+    documentos: { total: 12, subidos: 4, aprobados: 3, rechazados: 0 },
+    observaciones: ["Faltan 8 documentos requeridos"],
+    historial: [],
+  },
+  {
+    id: "SUC-2024-004",
+    tipo: "Sucesión intestada",
+    ciudadano: "Jorge Enrique Vargas",
+    cedula: "17.456.789",
+    estado: "firma",
+    etapa: 6,
+    responsable: "Notario Dr. Ramírez",
+    creado: "2023-12-01",
+    estimado: "2024-01-30",
+    herederos: 1,
+    bienes: ["Inmueble"],
+    documentos: { total: 8, subidos: 8, aprobados: 8, rechazados: 0 },
+    observaciones: [],
+    historial: [],
+  },
+  {
+    id: "SUC-2024-005",
+    tipo: "Sucesión testada",
+    ciudadano: "Lucía Fernanda Castro",
+    cedula: "63.892.145",
+    estado: "nuevo",
+    etapa: 1,
+    responsable: "Sin asignar",
+    creado: "2024-01-24",
+    estimado: "2024-03-20",
+    herederos: 4,
+    bienes: ["Cuentas bancarias"],
+    documentos: { total: 9, subidos: 0, aprobados: 0, rechazados: 0 },
+    observaciones: [],
+    historial: [],
+  },
+];
+
+const etapas = [
+  { id: 1, label: "Solicitud creada", icon: "📋", key: "nuevo" },
+  { id: 2, label: "Documentos requeridos", icon: "📁", key: "documentacion_pendiente" },
+  { id: 3, label: "Validación documental", icon: "🔍", key: "validacion" },
+  { id: 4, label: "Revisión jurídica", icon: "⚖️", key: "revision_juridica" },
+  { id: 5, label: "Elaboración escritura", icon: "✍️", key: "elaboracion_escritura" },
+  { id: 6, label: "Firma", icon: "🖊️", key: "firma" },
+  { id: 7, label: "Entrega final", icon: "🏛️", key: "entregado" },
+];
+
+const citas = [
+  { id: 1, ciudadano: "María Elena Rodríguez", fecha: "2024-01-30", hora: "09:00", tipo: "Presencial", tramite: "SUC-2024-001", estado: "confirmada" },
+  { id: 2, ciudadano: "Carlos Alberto Gómez", fecha: "2024-01-30", hora: "10:30", tipo: "Virtual", tramite: "SUC-2024-002", estado: "confirmada" },
+  { id: 3, ciudadano: "Patricia Suárez", fecha: "2024-01-31", hora: "14:00", tipo: "Presencial", tramite: "SUC-2024-003", estado: "pendiente" },
+];
+
+const mensajes = [
+  { id: 1, de: "María Elena", texto: "¿Cuánto tiempo más tarda la revisión jurídica?", hora: "09:15", leido: false, tramite: "SUC-2024-001" },
+  { id: 2, de: "Sistema", texto: "¿Puedo subir el acta de defunción en formato imagen?", hora: "11:30", leido: true, tramite: "SUC-2024-003" },
+  { id: 3, de: "Carlos Gómez", texto: "Confirmo asistencia para firma el martes", hora: "13:45", leido: false, tramite: "SUC-2024-002" },
+];
+
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
+const estadoColor = {
+  nuevo: "#2980B9",
+  documentacion_pendiente: "#E67E22",
+  validacion: "#8E44AD",
+  revision_juridica: "#2980B9",
+  elaboracion_escritura: "#27AE60",
+  firma: "#B8960C",
+  entregado: "#27AE60",
+};
+
+const estadoLabel = {
+  nuevo: "Nuevo",
+  documentacion_pendiente: "Docs. Pendientes",
+  validacion: "En Validación",
+  revision_juridica: "Revisión Jurídica",
+  elaboracion_escritura: "Elaborando Escritura",
+  firma: "Pendiente Firma",
+  entregado: "Entregado",
+};
+
+// ─── COMPONENTS ───────────────────────────────────────────────────────────────
+
+function Badge({ color, children }) {
+  return (
+    <span style={{
+      background: color + "20",
+      color: color,
+      border: `1px solid ${color}40`,
+      padding: "2px 10px",
+      borderRadius: 20,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 0.5,
+      textTransform: "uppercase",
+    }}>
+      {children}
+    </span>
+  );
+}
+
+function ProgressBar({ value, max, color = "#B8960C" }) {
+  const pct = Math.round((value / max) * 100);
+  return (
+    <div style={{ background: "#E5E0D5", borderRadius: 4, height: 6, overflow: "hidden" }}>
+      <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: 4, transition: "width 0.6s ease" }} />
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub, color = "#B8960C", icon }) {
+  return (
+    <div style={{
+      background: "#fff",
+      border: "1px solid #E5E0D5",
+      borderRadius: 12,
+      padding: "20px 24px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 4,
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", right: 16, top: 16, fontSize: 28, opacity: 0.15 }}>{icon}</div>
+      <span style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{label}</span>
+      <span style={{ fontSize: 32, fontWeight: 800, color, lineHeight: 1.1 }}>{value}</span>
+      {sub && <span style={{ fontSize: 12, color: "#999" }}>{sub}</span>}
+    </div>
+  );
+}
+
+// ─── ONBOARDING WIZARD ────────────────────────────────────────────────────────
+function OnboardingWizard({ onComplete }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [resultado, setResultado] = useState(null);
+  const [typing, setTyping] = useState(false);
+
+  const preguntas = [
+    {
+      id: "tipo",
+      pregunta: "¿Qué tipo de trámite necesita realizar?",
+      opciones: ["Sucesión intestada (sin testamento)", "Sucesión testada (con testamento)", "No sé / Necesito orientación"],
+    },
+    {
+      id: "herederos",
+      pregunta: "¿Cuántos herederos hay?",
+      opciones: ["1 heredero", "2 herederos", "3-5 herederos", "Más de 5 herederos"],
+    },
+    {
+      id: "testamento",
+      pregunta: "¿Existe testamento notariado?",
+      opciones: ["Sí, existe testamento", "No existe testamento", "No estoy seguro/a"],
+    },
+    {
+      id: "bienes",
+      pregunta: "¿Qué bienes están involucrados?",
+      tipo: "multi",
+      opciones: ["Inmueble (casa/apartamento/lote)", "Vehículo", "Cuentas bancarias", "Acciones o inversiones", "Solo bienes muebles", "No hay bienes conocidos"],
+    },
+    {
+      id: "ciudad",
+      pregunta: "¿En qué ciudad se encuentran los bienes principales?",
+      opciones: ["Bogotá", "Medellín", "Cali", "Barranquilla", "Otra ciudad"],
+    },
+  ];
+
+  const handleAnswer = (val) => {
+    const q = preguntas[step];
+    if (q.tipo === "multi") {
+      const prev = answers[q.id] || [];
+      const next = prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val];
+      setAnswers({ ...answers, [q.id]: next });
+    } else {
+      const newAnswers = { ...answers, [q.id]: val };
+      setAnswers(newAnswers);
+      setTyping(true);
+      setTimeout(() => {
+        setTyping(false);
+        if (step < preguntas.length - 1) {
+          setStep(step + 1);
+        } else {
+          generarResultado(newAnswers);
+        }
+      }, 600);
+    }
+  };
+
+  const handleMultiNext = () => {
+    setTyping(true);
+    setTimeout(() => {
+      setTyping(false);
+      if (step < preguntas.length - 1) setStep(step + 1);
+      else generarResultado(answers);
+    }, 600);
+  };
+
+  const generarResultado = (ans) => {
+    const herederosCnt = ans.herederos?.includes("1") ? 1 : ans.herederos?.includes("2") ? 2 : ans.herederos?.includes("3-5") ? 4 : 6;
+    const tieneTestamento = ans.testamento?.includes("Sí");
+    const bienes = Array.isArray(ans.bienes) ? ans.bienes : [ans.bienes];
+    const tieneInmueble = bienes?.some((b) => b?.includes("Inmueble"));
+
+    const docs = [
+      "Registro civil de defunción del causante",
+      "Cédulas de ciudadanía de todos los herederos",
+      "Registros civiles de nacimiento de herederos",
+      "Certificado de tradición y libertad (si hay inmueble)",
+    ];
+    if (tieneTestamento) docs.push("Copia autenticada del testamento");
+    if (!tieneTestamento) docs.push("Declaración de ausencia de testamento ante notario");
+    if (tieneInmueble) docs.push("Paz y salvo predial del inmueble", "Avalúo catastral vigente");
+    if (herederosCnt > 2) docs.push("Poder especial (si algún heredero no puede asistir)");
+
+    const tiempoBase = tieneTestamento ? 45 : 60;
+    const tiempoExtra = tieneInmueble ? 15 : 0;
+    const tiempoTotal = tiempoBase + tiempoExtra + (herederosCnt > 3 ? 15 : 0);
+
+    const costoBase = tieneInmueble ? 800000 : 400000;
+    const costoHerederos = herederosCnt * 50000;
+
+    setResultado({
+      docs,
+      tiempo: `${tiempoTotal} días hábiles aproximadamente`,
+      costo: `$${(costoBase + costoHerederos).toLocaleString("es-CO")} - $${(costoBase + costoHerederos + 500000).toLocaleString("es-CO")} COP`,
+      pasos: etapas.map((e) => e.label),
+      tipo: tieneTestamento ? "Sucesión Testada" : "Sucesión Intestada",
+    });
+  };
+
+  const q = preguntas[step];
+
+  return (
+    <div style={{ minHeight: "100%", display: "flex", flexDirection: "column", gap: 0 }}>
+      {/* Header */}
+      <div style={{ padding: "32px 32px 0", borderBottom: "1px solid #E5E0D5", paddingBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, background: "#B8960C", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏛️</div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: "#0D0D0D" }}>Asistente Inteligente</div>
+            <div style={{ fontSize: 12, color: "#888" }}>Notaría 27 · Le ayudamos paso a paso</div>
+          </div>
+        </div>
+        {!resultado && (
+          <div style={{ display: "flex", gap: 4 }}>
+            {preguntas.map((_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 3, borderRadius: 2,
+                background: i <= step ? "#B8960C" : "#E5E0D5",
+                transition: "background 0.3s",
+              }} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {resultado ? (
+          // RESULTADO
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ background: "linear-gradient(135deg, #B8960C10, #B8960C05)", border: "1px solid #B8960C30", borderRadius: 16, padding: 24 }}>
+              <div style={{ fontSize: 13, color: "#B8960C", fontWeight: 700, marginBottom: 4 }}>ANÁLISIS COMPLETADO</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#0D0D0D" }}>{resultado.tipo}</div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 4 }}>⏱ TIEMPO ESTIMADO</div>
+                <div style={{ fontWeight: 700, color: "#0D0D0D", fontSize: 15 }}>{resultado.tiempo}</div>
+              </div>
+              <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 4 }}>💰 COSTO ESTIMADO</div>
+                <div style={{ fontWeight: 700, color: "#27AE60", fontSize: 14 }}>{resultado.costo}</div>
+              </div>
+            </div>
+
+            <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 12, color: "#888", fontWeight: 700, marginBottom: 12, textTransform: "uppercase" }}>📋 Documentos Requeridos</div>
+              {resultado.docs.map((d, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 0", borderBottom: i < resultado.docs.length - 1 ? "1px solid #F0EDE5" : "none" }}>
+                  <span style={{ color: "#B8960C", marginTop: 1 }}>•</span>
+                  <span style={{ fontSize: 14, color: "#333" }}>{d}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 12, color: "#888", fontWeight: 700, marginBottom: 12, textTransform: "uppercase" }}>🗺 Proceso Paso a Paso</div>
+              {resultado.pasos.map((p, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0" }}>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#B8960C", color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+                  <span style={{ fontSize: 14, color: "#333" }}>{p}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={onComplete}
+              style={{ width: "100%", padding: "14px 0", background: "#B8960C", color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: "pointer", letterSpacing: 0.5 }}
+            >
+              Iniciar Mi Trámite →
+            </button>
+          </div>
+        ) : (
+          // PREGUNTA
+          <>
+            <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 20 }}>
+              <div style={{ fontSize: 11, color: "#B8960C", fontWeight: 700, marginBottom: 8 }}>Pregunta {step + 1} de {preguntas.length}</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "#0D0D0D", lineHeight: 1.4 }}>{q.pregunta}</div>
+            </div>
+
+            {typing ? (
+              <div style={{ display: "flex", gap: 4, padding: "12px 16px", background: "#F5F0E8", borderRadius: 12, width: "fit-content" }}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} style={{
+                    width: 8, height: 8, borderRadius: "50%", background: "#B8960C",
+                    animation: `bounce 0.8s ease-in-out ${i * 0.15}s infinite`,
+                  }} />
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {q.opciones.map((op) => {
+                  const isSelected = q.tipo === "multi" && (answers[q.id] || []).includes(op);
+                  return (
+                    <button
+                      key={op}
+                      onClick={() => handleAnswer(op)}
+                      style={{
+                        padding: "12px 16px",
+                        background: isSelected ? "#B8960C10" : "#fff",
+                        border: `1.5px solid ${isSelected ? "#B8960C" : "#E5E0D5"}`,
+                        borderRadius: 10,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        color: isSelected ? "#B8960C" : "#333",
+                        fontWeight: isSelected ? 700 : 400,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {isSelected ? "✓ " : ""}{op}
+                    </button>
+                  );
+                })}
+                {q.tipo === "multi" && (
+                  <button
+                    onClick={handleMultiNext}
+                    disabled={!(answers[q.id]?.length > 0)}
+                    style={{ padding: "12px 16px", background: "#B8960C", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, marginTop: 4 }}
+                  >
+                    Continuar →
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── TRACKER ──────────────────────────────────────────────────────────────────
+function TramiteTracker({ tramite }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg, #0D0D0D, #2C3E50)", borderRadius: 16, padding: 24, color: "#fff" }}>
+        <div style={{ fontSize: 12, color: "#B8960C", fontWeight: 700, marginBottom: 4 }}>EXPEDIENTE {tramite.id}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{tramite.tipo}</div>
+        <div style={{ display: "flex", gap: 16, fontSize: 13, color: "#aaa" }}>
+          <span>👤 {tramite.ciudadano}</span>
+          <span>📅 Iniciado: {tramite.creado}</span>
+          <span>⏱ Est.: {tramite.estimado}</span>
+        </div>
+      </div>
+
+      {/* Progreso */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 12, color: "#888", fontWeight: 700, marginBottom: 20, textTransform: "uppercase" }}>Progreso del Trámite</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {etapas.map((etapa, idx) => {
+            const done = idx < tramite.etapa - 1;
+            const current = idx === tramite.etapa - 1;
+            const pending = idx > tramite.etapa - 1;
+            return (
+              <div key={etapa.id} style={{ display: "flex", alignItems: "flex-start", gap: 16, position: "relative" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                    background: done ? "#27AE60" : current ? "#B8960C" : "#E5E0D5",
+                    border: current ? "3px solid #B8960C40" : "none",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: done ? 14 : 12,
+                    color: done || current ? "#fff" : "#999",
+                    fontWeight: 800,
+                    transition: "all 0.3s",
+                    boxShadow: current ? "0 0 0 4px #B8960C20" : "none",
+                  }}>
+                    {done ? "✓" : etapa.icon}
+                  </div>
+                  {idx < etapas.length - 1 && (
+                    <div style={{ width: 2, height: 32, background: done ? "#27AE60" : "#E5E0D5", marginTop: 2 }} />
+                  )}
+                </div>
+                <div style={{ paddingTop: 6, paddingBottom: 16 }}>
+                  <div style={{ fontWeight: current ? 800 : 600, color: pending ? "#CCC" : "#0D0D0D", fontSize: 14 }}>
+                    {etapa.label}
+                  </div>
+                  {current && (
+                    <div style={{ fontSize: 12, color: "#B8960C", fontWeight: 600, marginTop: 2 }}>
+                      ← En proceso · {tramite.responsable}
+                    </div>
+                  )}
+                  {done && (
+                    <div style={{ fontSize: 12, color: "#27AE60", fontWeight: 600, marginTop: 2 }}>Completado</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Documentos */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 12, color: "#888", fontWeight: 700, marginBottom: 16, textTransform: "uppercase" }}>Documentos</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
+          {[
+            { label: "Total", val: tramite.documentos.total, color: "#2980B9" },
+            { label: "Subidos", val: tramite.documentos.subidos, color: "#8E44AD" },
+            { label: "Aprobados", val: tramite.documentos.aprobados, color: "#27AE60" },
+            { label: "Rechazados", val: tramite.documentos.rechazados, color: "#C0392B" },
+          ].map((d) => (
+            <div key={d.label} style={{ textAlign: "center", padding: 12, background: d.color + "10", borderRadius: 10, border: `1px solid ${d.color}20` }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: d.color }}>{d.val}</div>
+              <div style={{ fontSize: 11, color: "#888", fontWeight: 600 }}>{d.label}</div>
+            </div>
+          ))}
+        </div>
+        <ProgressBar value={tramite.documentos.aprobados} max={tramite.documentos.total} color="#27AE60" />
+        <div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>
+          {Math.round((tramite.documentos.aprobados / tramite.documentos.total) * 100)}% de documentos aprobados
+        </div>
+      </div>
+
+      {/* Observaciones */}
+      {tramite.observaciones.length > 0 && (
+        <div style={{ background: "#FFF8F0", border: "1px solid #E67E2240", borderRadius: 16, padding: 20 }}>
+          <div style={{ fontSize: 12, color: "#E67E22", fontWeight: 700, marginBottom: 12, textTransform: "uppercase" }}>⚠ Observaciones Pendientes</div>
+          {tramite.observaciones.map((o, i) => (
+            <div key={i} style={{ fontSize: 14, color: "#8B4513", padding: "8px 0", borderBottom: i < tramite.observaciones.length - 1 ? "1px solid #E67E2220" : "none" }}>
+              {o}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Historial */}
+      {tramite.historial.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+          <div style={{ fontSize: 12, color: "#888", fontWeight: 700, marginBottom: 16, textTransform: "uppercase" }}>Historial de Acciones</div>
+          {tramite.historial.map((h, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < tramite.historial.length - 1 ? "1px solid #F0EDE5" : "none" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#B8960C", marginTop: 5, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 14, color: "#333", fontWeight: 600 }}>{h.evento}</div>
+                <div style={{ fontSize: 12, color: "#888" }}>{h.fecha} · {h.actor}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CRM KANBAN ───────────────────────────────────────────────────────────────
+function CRMKanban({ tramites, onSelect }) {
+  const [dragging, setDragging] = useState(null);
+  const [columns, setColumns] = useState(() => {
+    const cols = {
+      nuevo: [],
+      documentacion_pendiente: [],
+      validacion: [],
+      revision_juridica: [],
+      elaboracion_escritura: [],
+      firma: [],
+      entregado: [],
+    };
+    tramites.forEach((t) => { if (cols[t.estado]) cols[t.estado].push(t); });
+    return cols;
+  });
+
+  const colDefs = [
+    { key: "nuevo", label: "Nuevo", color: "#2980B9" },
+    { key: "documentacion_pendiente", label: "Docs. Pendientes", color: "#E67E22" },
+    { key: "validacion", label: "En Validación", color: "#8E44AD" },
+    { key: "revision_juridica", label: "Revisión Jurídica", color: "#2980B9" },
+    { key: "elaboracion_escritura", label: "Escritura", color: "#27AE60" },
+    { key: "firma", label: "Firma", color: "#B8960C" },
+    { key: "entregado", label: "Entregado ✓", color: "#27AE60" },
+  ];
+
+  const handleDrop = (targetKey) => {
+    if (!dragging) return;
+    const { card, fromKey } = dragging;
+    if (fromKey === targetKey) { setDragging(null); return; }
+    setColumns((prev) => {
+      const next = { ...prev };
+      next[fromKey] = prev[fromKey].filter((c) => c.id !== card.id);
+      next[targetKey] = [...prev[targetKey], { ...card, estado: targetKey }];
+      return next;
+    });
+    setDragging(null);
+  };
+
+  return (
+    <div style={{ overflowX: "auto", paddingBottom: 16 }}>
+      <div style={{ display: "flex", gap: 12, minWidth: "fit-content" }}>
+        {colDefs.map((col) => (
+          <div
+            key={col.key}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => handleDrop(col.key)}
+            style={{
+              width: 220,
+              background: "#F8F5F0",
+              border: "1px solid #E5E0D5",
+              borderRadius: 12,
+              overflow: "hidden",
+            }}
+          >
+            <div style={{ padding: "12px 16px", background: col.color + "15", borderBottom: `2px solid ${col.color}` }}>
+              <div style={{ fontWeight: 800, fontSize: 12, color: col.color, textTransform: "uppercase" }}>{col.label}</div>
+              <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{columns[col.key].length} trámites</div>
+            </div>
+            <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 8, minHeight: 120 }}>
+              {columns[col.key].map((t) => (
+                <div
+                  key={t.id}
+                  draggable
+                  onDragStart={() => setDragging({ card: t, fromKey: col.key })}
+                  onClick={() => onSelect(t)}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E5E0D5",
+                    borderRadius: 8,
+                    padding: 12,
+                    cursor: "grab",
+                    transition: "box-shadow 0.15s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <div style={{ fontSize: 10, color: col.color, fontWeight: 700 }}>{t.id}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginTop: 4, lineHeight: 1.3 }}>{t.ciudadano}</div>
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>{t.tipo}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <ProgressBar value={t.documentos.aprobados} max={t.documentos.total} />
+                    <div style={{ fontSize: 10, color: "#888", marginTop: 4 }}>Docs: {t.documentos.aprobados}/{t.documentos.total}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function Dashboard({ tramites, onSelect }) {
+  const total = tramites.length;
+  const activos = tramites.filter((t) => t.estado !== "entregado").length;
+  const finalizados = tramites.filter((t) => t.estado === "entregado").length;
+  const enRiesgo = tramites.filter((t) => t.observaciones.length > 0).length;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <StatCard label="Trámites Activos" value={activos} icon="📋" color="#2980B9" sub={`de ${total} totales`} />
+        <StatCard label="Finalizados" value={finalizados} icon="✅" color="#27AE60" sub="este mes" />
+        <StatCard label="En Riesgo" value={enRiesgo} icon="⚠️" color="#E67E22" sub="requieren atención" />
+        <StatCard label="Tiempo Prom." value="38d" icon="⏱️" color="#8E44AD" sub="días hábiles" />
+      </div>
+
+      {/* Por etapa */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 20 }}>Distribución por Etapa</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {etapas.slice(0, 6).map((e) => {
+            const cnt = tramites.filter((t) => t.estado === e.key).length;
+            return (
+              <div key={e.key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 140, fontSize: 13, color: "#555", flexShrink: 0 }}>{e.icon} {e.label}</div>
+                <div style={{ flex: 1 }}>
+                  <ProgressBar value={cnt} max={total || 1} color={estadoColor[e.key]} />
+                </div>
+                <div style={{ width: 24, textAlign: "right", fontWeight: 700, fontSize: 13, color: "#0D0D0D" }}>{cnt}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Lista reciente */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 16 }}>Trámites Recientes</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #F0EDE5" }}>
+              {["Expediente", "Ciudadano", "Tipo", "Estado", "Responsable", "Docs", ""].map((h) => (
+                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, color: "#888", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tramites.map((t) => (
+              <tr key={t.id} style={{ borderBottom: "1px solid #F8F5F0", cursor: "pointer" }} onClick={() => onSelect(t)}>
+                <td style={{ padding: "12px 12px", fontSize: 13, fontWeight: 700, color: "#B8960C" }}>{t.id}</td>
+                <td style={{ padding: "12px 12px", fontSize: 13, color: "#333", fontWeight: 600 }}>{t.ciudadano}</td>
+                <td style={{ padding: "12px 12px", fontSize: 12, color: "#666" }}>{t.tipo}</td>
+                <td style={{ padding: "12px 12px" }}><Badge color={estadoColor[t.estado]}>{estadoLabel[t.estado]}</Badge></td>
+                <td style={{ padding: "12px 12px", fontSize: 12, color: "#666" }}>{t.responsable}</td>
+                <td style={{ padding: "12px 12px", fontSize: 12, color: "#333" }}>{t.documentos.aprobados}/{t.documentos.total}</td>
+                <td style={{ padding: "12px 12px" }}>
+                  <button style={{ padding: "4px 10px", background: "#F5F0E8", border: "1px solid #E5E0D5", borderRadius: 6, fontSize: 11, cursor: "pointer", color: "#555" }}>Ver →</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+function ChatPanel() {
+  const [msgs, setMsgs] = useState([
+    { id: 1, de: "sistema", texto: "Bienvenido a la Notaría 27. ¿En qué le puedo ayudar hoy?", hora: "09:00" },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+
+  const autoResponses = {
+    "requisito": "Para una sucesión necesita: registro civil de defunción, cédulas de herederos, registros civiles de nacimiento, y certificado de tradición si hay inmueble.",
+    "costo": "Los costos varían según el tipo de sucesión y bienes. Una sucesión intestada simple puede costar entre $400.000 y $1.500.000 COP. Use nuestro asistente inteligente para un estimado personalizado.",
+    "horario": "Atendemos de lunes a viernes de 8:00 AM a 5:00 PM. Los sábados de 8:00 AM a 12:00 PM.",
+    "tiempo": "El tiempo estimado para una sucesión de mutuo acuerdo es de 30 a 75 días hábiles, dependiendo de la complejidad.",
+    "cita": "Puede agendar su cita desde la sección de Citas de nuestro portal, o llamando al (601) 123-4567.",
+    "estado": "Para consultar el estado de su trámite, vaya a la sección 'Mi Trámite' e ingrese su número de expediente.",
+  };
+
+  const getAutoResponse = (text) => {
+    const lower = text.toLowerCase();
+    for (const [key, val] of Object.entries(autoResponses)) {
+      if (lower.includes(key)) return val;
+    }
+    return "Entendido. Voy a conectarle con un funcionario de la Notaría 27 para que le ayude con su consulta específica. Le atenderán en los próximos minutos.";
+  };
+
+  const send = () => {
+    if (!input.trim()) return;
+    const userMsg = { id: Date.now(), de: "usuario", texto: input, hora: new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) };
+    setMsgs((m) => [...m, userMsg]);
+    setInput("");
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setMsgs((m) => [...m, {
+        id: Date.now() + 1,
+        de: "sistema",
+        texto: getAutoResponse(userMsg.texto),
+        hora: new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
+      }]);
+    }, 1200);
+  };
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: 600, background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, overflow: "hidden" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E0D5", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 36, height: 36, background: "#B8960C", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏛️</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Asistente Notaría 27</div>
+          <div style={{ fontSize: 11, color: "#27AE60", fontWeight: 600 }}>● En línea</div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+        {msgs.map((m) => (
+          <div key={m.id} style={{ display: "flex", justifyContent: m.de === "usuario" ? "flex-end" : "flex-start" }}>
+            <div style={{
+              maxWidth: "75%",
+              padding: "10px 14px",
+              borderRadius: m.de === "usuario" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+              background: m.de === "usuario" ? "#B8960C" : "#F5F0E8",
+              color: m.de === "usuario" ? "#fff" : "#333",
+              fontSize: 14,
+              lineHeight: 1.5,
+            }}>
+              {m.texto}
+              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4, textAlign: "right" }}>{m.hora}</div>
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ display: "flex", gap: 4, padding: "10px 14px", background: "#F5F0E8", borderRadius: "16px 16px 16px 4px", width: "fit-content" }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#B8960C", animation: `bounce 0.8s ease-in-out ${i * 0.15}s infinite` }} />
+            ))}
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      <div style={{ padding: 16, borderTop: "1px solid #E5E0D5", display: "flex", gap: 8 }}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Escriba su consulta..."
+          style={{ flex: 1, padding: "10px 14px", border: "1px solid #E5E0D5", borderRadius: 10, fontSize: 14, outline: "none" }}
+        />
+        <button
+          onClick={send}
+          style={{ padding: "10px 20px", background: "#B8960C", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700 }}
+        >
+          →
+        </button>
+      </div>
+
+      <div style={{ padding: "8px 16px 12px", display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {["¿Cuánto cuesta?", "¿Qué requisitos necesito?", "Ver horarios", "Estado de mi trámite"].map((s) => (
+          <button key={s} onClick={() => { setInput(s); }} style={{ padding: "4px 10px", background: "#F5F0E8", border: "1px solid #E5E0D5", borderRadius: 20, fontSize: 11, cursor: "pointer", color: "#555" }}>{s}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── PORTAL DUELO ─────────────────────────────────────────────────────────────
+function PortalDuelo() {
+  const [selected, setSelected] = useState(null);
+
+  const pasos = [
+    { icon: "💙", titulo: "Solicitud inicial", desc: "Complete la información básica del fallecido y sus herederos. Le guiaremos en cada paso.", tiempo: "1-2 días", facil: true },
+    { icon: "📋", titulo: "Lista de documentos", desc: "Le diremos exactamente qué documentos necesita y cómo obtenerlos, en lenguaje sencillo.", tiempo: "Variable", facil: true },
+    { icon: "✅", titulo: "Revisión de documentos", desc: "Nuestro equipo verifica que todo esté en orden. Si falta algo, le avisamos de inmediato.", tiempo: "3-5 días", facil: false },
+    { icon: "⚖️", titulo: "Estudio jurídico", desc: "Un abogado especializado analiza el caso para garantizar que todo sea legal y correcto.", tiempo: "7-15 días", facil: false },
+    { icon: "📝", titulo: "Elaboración de la escritura", desc: "Redactamos el documento oficial que distribuye los bienes entre los herederos.", tiempo: "5-10 días", facil: false },
+    { icon: "🖊️", titulo: "Firma ante notario", desc: "Todos los herederos firman en presencia del notario. También puede ser virtual.", tiempo: "1 día", facil: true },
+    { icon: "🏛️", titulo: "Entrega del trámite", desc: "Recibe su escritura y puede comenzar los trámites de registro de bienes.", tiempo: "1-2 días", facil: true },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Mensaje empático */}
+      <div style={{ background: "linear-gradient(135deg, #2C3E5010, #B8960C08)", border: "1px solid #B8960C30", borderRadius: 20, padding: 32, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>💙</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "#0D0D0D", marginBottom: 12 }}>Le acompañamos en este momento</div>
+        <div style={{ fontSize: 15, color: "#555", lineHeight: 1.7, maxWidth: 560, margin: "0 auto" }}>
+          Sabemos que este es un momento difícil. Nuestro equipo está aquí para guiarle en cada paso del proceso de sucesión, con claridad, respeto y acompañamiento humano.
+        </div>
+      </div>
+
+      {/* Lo que necesita saber */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 20 }}>Lo que necesita saber</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          {[
+            { icon: "🤝", titulo: "90% de mutuo acuerdo", desc: "La mayoría de sucesiones se resuelven en armonía entre familias" },
+            { icon: "📱", titulo: "Todo digital", desc: "Puede gestionar su trámite desde casa, sin necesidad de desplazarse" },
+            { icon: "🛡️", titulo: "Proceso seguro", desc: "Sus documentos están protegidos con la más alta seguridad" },
+          ].map((item) => (
+            <div key={item.titulo} style={{ textAlign: "center", padding: 20, background: "#F8F5F0", borderRadius: 12 }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>{item.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#0D0D0D", marginBottom: 6 }}>{item.titulo}</div>
+              <div style={{ fontSize: 12, color: "#666", lineHeight: 1.5 }}>{item.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Guía de pasos */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 4 }}>Guía del proceso, explicada de forma sencilla</div>
+        <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>Haga clic en cualquier etapa para ver más detalles</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {pasos.map((paso, idx) => (
+            <div key={idx}>
+              <div
+                onClick={() => setSelected(selected === idx ? null : idx)}
+                style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 0", cursor: "pointer", borderBottom: "1px solid #F0EDE5" }}
+              >
+                <div style={{ width: 48, height: 48, background: "#F5F0E8", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{paso.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#0D0D0D" }}>
+                    Paso {idx + 1}: {paso.titulo}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>⏱ {paso.tiempo} · {paso.facil ? "✅ Fácil de hacer" : "👤 Lo hacemos por usted"}</div>
+                </div>
+                <div style={{ color: "#B8960C", fontWeight: 700 }}>{selected === idx ? "▲" : "▼"}</div>
+              </div>
+              {selected === idx && (
+                <div style={{ padding: "16px 0 16px 64px", background: "#FAFAF8" }}>
+                  <div style={{ fontSize: 14, color: "#444", lineHeight: 1.7 }}>{paso.desc}</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Ayuda emocional */}
+      <div style={{ background: "linear-gradient(135deg, #B8960C08, #27AE6005)", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 16 }}>Centro de Apoyo</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {[
+            { label: "Hablar con un asesor", icon: "💬", desc: "Resolvemos sus dudas de forma amable y clara" },
+            { label: "Preguntas frecuentes", icon: "❓", desc: "Respuestas a las preguntas más comunes" },
+            { label: "Guía para familias", icon: "📖", desc: "Documento completo sobre el proceso" },
+            { label: "Agendar cita", icon: "📅", desc: "Reunión presencial o virtual con nuestro equipo" },
+          ].map((item) => (
+            <div key={item.label} style={{ display: "flex", gap: 12, padding: 16, background: "#fff", border: "1px solid #E5E0D5", borderRadius: 12, cursor: "pointer" }}>
+              <span style={{ fontSize: 22 }}>{item.icon}</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#0D0D0D" }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CITAS ────────────────────────────────────────────────────────────────────
+function GestionCitas() {
+  const [tab, setTab] = useState("agenda");
+  const [showForm, setShowForm] = useState(false);
+  const hours = ["08:00", "09:00", "10:00", "10:30", "11:00", "14:00", "15:00", "15:30", "16:00"];
+  const [selected, setSelected] = useState(null);
+
+  const dias = ["Lun 29", "Mar 30", "Mié 31", "Jue 01", "Vie 02"];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {["agenda", "nueva", "mis_citas"].map((t) => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            padding: "8px 20px", borderRadius: 8, border: "1.5px solid",
+            borderColor: tab === t ? "#B8960C" : "#E5E0D5",
+            background: tab === t ? "#B8960C" : "#fff",
+            color: tab === t ? "#fff" : "#555",
+            fontWeight: 700, fontSize: 13, cursor: "pointer",
+          }}>
+            {t === "agenda" ? "📅 Agenda" : t === "nueva" ? "➕ Nueva Cita" : "📋 Mis Citas"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "agenda" && (
+        <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "80px repeat(5, 1fr)", borderBottom: "2px solid #E5E0D5" }}>
+            <div style={{ padding: 12, background: "#F8F5F0" }} />
+            {dias.map((d) => (
+              <div key={d} style={{ padding: 12, textAlign: "center", background: "#F8F5F0", fontWeight: 700, fontSize: 12, color: "#555", borderLeft: "1px solid #E5E0D5" }}>{d}</div>
+            ))}
+          </div>
+          {hours.map((h) => (
+            <div key={h} style={{ display: "grid", gridTemplateColumns: "80px repeat(5, 1fr)", borderBottom: "1px solid #F0EDE5" }}>
+              <div style={{ padding: "8px 12px", fontSize: 11, color: "#888", fontWeight: 600, display: "flex", alignItems: "center" }}>{h}</div>
+              {dias.map((d, di) => {
+                const cita = citas.find((c) => c.hora === h);
+                return (
+                  <div key={d} style={{ borderLeft: "1px solid #F0EDE5", padding: 4, minHeight: 40 }}>
+                    {cita && di === 1 && (
+                      <div style={{ background: "#B8960C15", border: "1px solid #B8960C40", borderRadius: 6, padding: "4px 8px", fontSize: 11 }}>
+                        <div style={{ fontWeight: 700, color: "#B8960C" }}>{cita.ciudadano.split(" ")[0]}</div>
+                        <div style={{ color: "#888", fontSize: 10 }}>{cita.tipo}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "nueva" && (
+        <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, padding: 24, maxWidth: 500 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Agendar Nueva Cita</div>
+          {[
+            { label: "Trámite relacionado", type: "select", options: mockTramites.map((t) => t.id) },
+            { label: "Tipo de cita", type: "select", options: ["Presencial", "Virtual (Google Meet)", "Telefónica"] },
+            { label: "Fecha", type: "date" },
+            { label: "Hora preferida", type: "select", options: hours },
+            { label: "Notas adicionales", type: "textarea" },
+          ].map((f) => (
+            <div key={f.label} style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#555", marginBottom: 6, textTransform: "uppercase" }}>{f.label}</label>
+              {f.type === "textarea" ? (
+                <textarea style={{ width: "100%", padding: "10px 14px", border: "1px solid #E5E0D5", borderRadius: 8, fontSize: 14, resize: "vertical", minHeight: 80, boxSizing: "border-box" }} />
+              ) : f.type === "select" ? (
+                <select style={{ width: "100%", padding: "10px 14px", border: "1px solid #E5E0D5", borderRadius: 8, fontSize: 14 }}>
+                  {f.options?.map((o) => <option key={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input type={f.type} style={{ width: "100%", padding: "10px 14px", border: "1px solid #E5E0D5", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }} />
+              )}
+            </div>
+          ))}
+          <button style={{ width: "100%", padding: 14, background: "#B8960C", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            Confirmar Cita
+          </button>
+        </div>
+      )}
+
+      {tab === "mis_citas" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {citas.map((c) => (
+            <div key={c.id} style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 12, padding: 20, display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ width: 56, height: 56, background: c.estado === "confirmada" ? "#27AE6015" : "#E67E2215", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#555" }}>{c.fecha.split("-")[2]}</div>
+                <div style={{ fontSize: 10, color: "#888" }}>ENE</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{c.ciudadano}</div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>🕐 {c.hora} · {c.tipo} · {c.tramite}</div>
+              </div>
+              <Badge color={c.estado === "confirmada" ? "#27AE60" : "#E67E22"}>{c.estado}</Badge>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={{ padding: "6px 12px", background: "#F5F0E8", border: "1px solid #E5E0D5", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Reprogramar</button>
+                <button style={{ padding: "6px 12px", background: "#FFF0F0", border: "1px solid #C0392B20", borderRadius: 6, fontSize: 12, cursor: "pointer", color: "#C0392B" }}>Cancelar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── DOCUMENTOS ───────────────────────────────────────────────────────────────
+function GestionDocumentos({ tramite }) {
+  const [dragging, setDragging] = useState(false);
+  const docs = [
+    { nombre: "Registro civil de defunción", estado: "aprobado", fecha: "2024-01-18", size: "2.3 MB", tipo: "PDF" },
+    { nombre: "Cédula heredero 1 - María Elena", estado: "aprobado", fecha: "2024-01-18", size: "1.1 MB", tipo: "JPG" },
+    { nombre: "Cédula heredero 2 - José Rodríguez", estado: "aprobado", fecha: "2024-01-18", size: "0.9 MB", tipo: "JPG" },
+    { nombre: "Registro civil nacimiento - María Elena", estado: "rechazado", fecha: "2024-01-20", size: "1.8 MB", tipo: "PDF", obs: "Documento ilegible, por favor re-escanee" },
+    { nombre: "Certificado tradición y libertad", estado: "aprobado", fecha: "2024-01-19", size: "3.2 MB", tipo: "PDF" },
+    { nombre: "Avalúo catastral", estado: "pendiente", fecha: null, size: null, tipo: null },
+    { nombre: "Acta de defunción apostillada", estado: "pendiente", fecha: null, size: null, tipo: null },
+    { nombre: "Paz y salvo predial", estado: "aprobado", fecha: "2024-01-21", size: "0.7 MB", tipo: "PDF" },
+  ];
+
+  const docColor = { aprobado: "#27AE60", rechazado: "#C0392B", pendiente: "#E67E22" };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Upload zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); }}
+        style={{
+          border: `2px dashed ${dragging ? "#B8960C" : "#E5E0D5"}`,
+          borderRadius: 16, padding: 40,
+          textAlign: "center",
+          background: dragging ? "#B8960C08" : "#F8F5F0",
+          transition: "all 0.2s",
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📤</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: "#0D0D0D", marginBottom: 8 }}>Arrastre sus documentos aquí</div>
+        <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>PDF, JPG, PNG, Word · Máximo 10MB por archivo</div>
+        <button style={{ padding: "10px 24px", background: "#B8960C", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+          Seleccionar Archivos
+        </button>
+      </div>
+
+      {/* Tabla docs */}
+      <div style={{ background: "#fff", border: "1px solid #E5E0D5", borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E0D5", fontWeight: 700, fontSize: 13 }}>
+          Documentos del Expediente {tramite?.id || "SUC-2024-001"}
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#F8F5F0", borderBottom: "1px solid #E5E0D5" }}>
+              {["Documento", "Estado", "Fecha", "Tamaño", "Tipo", "Acciones"].map((h) => (
+                <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: "#888", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {docs.map((d, i) => (
+              <tr key={i} style={{ borderBottom: "1px solid #F0EDE5" }}>
+                <td style={{ padding: "14px 16px" }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#0D0D0D" }}>{d.nombre}</div>
+                  {d.obs && <div style={{ fontSize: 11, color: "#C0392B", marginTop: 2 }}>⚠ {d.obs}</div>}
+                </td>
+                <td style={{ padding: "14px 16px" }}><Badge color={docColor[d.estado]}>{d.estado}</Badge></td>
+                <td style={{ padding: "14px 16px", fontSize: 12, color: "#888" }}>{d.fecha || "—"}</td>
+                <td style={{ padding: "14px 16px", fontSize: 12, color: "#888" }}>{d.size || "—"}</td>
+                <td style={{ padding: "14px 16px", fontSize: 12, color: "#888" }}>{d.tipo || "—"}</td>
+                <td style={{ padding: "14px 16px" }}>
+                  {d.estado !== "pendiente" ? (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button style={{ padding: "4px 10px", background: "#F5F0E8", border: "1px solid #E5E0D5", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Ver</button>
+                      <button style={{ padding: "4px 10px", background: "#F5F0E8", border: "1px solid #E5E0D5", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Reemplazar</button>
+                    </div>
+                  ) : (
+                    <button style={{ padding: "4px 10px", background: "#B8960C15", border: "1px solid #B8960C40", borderRadius: 6, fontSize: 11, cursor: "pointer", color: "#B8960C", fontWeight: 700 }}>Subir</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [role, setRole] = useState("ciudadano");
+  const [view, setView] = useState("onboarding");
+  const [selectedTramite, setSelectedTramite] = useState(mockTramites[0]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const roles = [
+    { key: "ciudadano", label: "Ciudadano", icon: "👤" },
+    { key: "abogado", label: "Abogado", icon: "⚖️" },
+    { key: "auxiliar", label: "Auxiliar", icon: "📋" },
+    { key: "notario", label: "Notario", icon: "🏛️" },
+    { key: "admin", label: "Administrador", icon: "⚙️" },
+  ];
+
+  const navByRole = {
+    ciudadano: [
+      { key: "onboarding", label: "Asistente Inteligente", icon: "🤖" },
+      { key: "tracker", label: "Mi Trámite", icon: "📊" },
+      { key: "documentos", label: "Mis Documentos", icon: "📁" },
+      { key: "citas", label: "Citas", icon: "📅" },
+      { key: "duelo", label: "Portal de Acompañamiento", icon: "💙" },
+      { key: "chat", label: "Chat con Notaría", icon: "💬" },
+    ],
+    abogado: [
+      { key: "dashboard", label: "Dashboard", icon: "📊" },
+      { key: "crm", label: "Expedientes", icon: "📋" },
+      { key: "documentos", label: "Revisión Documental", icon: "📁" },
+      { key: "chat", label: "Mensajes", icon: "💬" },
+    ],
+    auxiliar: [
+      { key: "dashboard", label: "Dashboard", icon: "📊" },
+      { key: "crm", label: "Gestión de Casos", icon: "📋" },
+      { key: "documentos", label: "Documentos", icon: "📁" },
+      { key: "citas", label: "Agenda", icon: "📅" },
+    ],
+    notario: [
+      { key: "dashboard", label: "Dashboard", icon: "📊" },
+      { key: "crm", label: "CRM Notarial", icon: "📋" },
+      { key: "citas", label: "Agenda", icon: "📅" },
+    ],
+    admin: [
+      { key: "dashboard", label: "Dashboard Operativo", icon: "📊" },
+      { key: "crm", label: "CRM Notarial", icon: "📋" },
+      { key: "citas", label: "Agenda", icon: "📅" },
+      { key: "documentos", label: "Documentos", icon: "📁" },
+      { key: "chat", label: "Mensajes", icon: "💬" },
+    ],
+  };
+
+  const nav = navByRole[role] || navByRole.ciudadano;
+
+  const renderContent = () => {
+    switch (view) {
+      case "onboarding": return <OnboardingWizard onComplete={() => setView("tracker")} />;
+      case "tracker": return <TramiteTracker tramite={selectedTramite} />;
+      case "documentos": return <GestionDocumentos tramite={selectedTramite} />;
+      case "citas": return <GestionCitas />;
+      case "duelo": return <PortalDuelo />;
+      case "chat": return <ChatPanel />;
+      case "dashboard": return <Dashboard tramites={mockTramites} onSelect={(t) => { setSelectedTramite(t); setView("tracker"); }} />;
+      case "crm": return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>CRM Notarial · Pipeline de Trámites</div>
+          <div style={{ fontSize: 13, color: "#888" }}>Arrastre las tarjetas para actualizar el estado de cada trámite</div>
+          <CRMKanban tramites={mockTramites} onSelect={(t) => { setSelectedTramite(t); setView("tracker"); }} />
+        </div>
+      );
+      default: return null;
+    }
+  };
+
+  return (
+    <>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Georgia', 'Times New Roman', serif; background: #F5F0E8; }
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-6px); }
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F0EDE5; }
+        ::-webkit-scrollbar-thumb { background: #C8B890; border-radius: 3px; }
+        button:hover { opacity: 0.9; }
+      `}</style>
+
+      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#F5F0E8" }}>
+        {/* SIDEBAR */}
+        <div style={{
+          width: sidebarOpen ? 260 : 64,
+          background: "#0D0D0D",
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          transition: "width 0.3s ease",
+          overflow: "hidden",
+        }}>
+          {/* Logo */}
+          <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, background: "#B8960C", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>🏛️</div>
+            {sidebarOpen && (
+              <div>
+                <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, lineHeight: 1 }}>Notaría 27</div>
+                <div style={{ color: "#B8960C", fontSize: 11, marginTop: 2 }}>Sistema Integral</div>
+              </div>
+            )}
+          </div>
+
+          {/* Role selector */}
+          {sidebarOpen && (
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #222" }}>
+              <div style={{ fontSize: 10, color: "#666", fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>Portal</div>
+              <select
+                value={role}
+                onChange={(e) => { setRole(e.target.value); setView(navByRole[e.target.value][0].key); }}
+                style={{ width: "100%", padding: "8px 10px", background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, color: "#fff", fontSize: 13 }}
+              >
+                {roles.map((r) => <option key={r.key} value={r.key}>{r.icon} {r.label}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Nav */}
+          <nav style={{ flex: 1, padding: "12px 12px", display: "flex", flexDirection: "column", gap: 4, overflowY: "auto" }}>
+            {nav.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setView(item.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 12px", borderRadius: 8,
+                  background: view === item.key ? "#B8960C" : "transparent",
+                  border: "none", cursor: "pointer", width: "100%", textAlign: "left",
+                  color: view === item.key ? "#fff" : "#888",
+                  fontWeight: view === item.key ? 700 : 400,
+                  transition: "all 0.15s",
+                  fontSize: 14, fontFamily: "inherit",
+                }}
+              >
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
+                {sidebarOpen && <span style={{ whiteSpace: "nowrap", overflow: "hidden" }}>{item.label}</span>}
+              </button>
+            ))}
+          </nav>
+
+          {/* Toggle */}
+          <div style={{ padding: 12, borderTop: "1px solid #222" }}>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{ width: "100%", padding: "8px 0", background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, color: "#888", cursor: "pointer", fontSize: 14 }}
+            >
+              {sidebarOpen ? "◀" : "▶"}
+            </button>
+          </div>
+        </div>
+
+        {/* MAIN */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* Top bar */}
+          <div style={{ background: "#fff", borderBottom: "1px solid #E5E0D5", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+            <div>
+              <span style={{ fontWeight: 800, fontSize: 16, color: "#0D0D0D" }}>
+                {nav.find((n) => n.key === view)?.icon} {nav.find((n) => n.key === view)?.label}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {/* Notifications */}
+              <div style={{ position: "relative", cursor: "pointer" }}>
+                <div style={{ width: 36, height: 36, background: "#F5F0E8", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🔔</div>
+                <div style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, background: "#C0392B", borderRadius: "50%", fontSize: 9, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>3</div>
+              </div>
+              {/* User */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 36, height: 36, background: "#B8960C", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 800 }}>
+                  {roles.find((r) => r.key === role)?.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{roles.find((r) => r.key === role)?.label}</div>
+                  <div style={{ fontSize: 11, color: "#888" }}>Notaría 27</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 32 }}>
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
